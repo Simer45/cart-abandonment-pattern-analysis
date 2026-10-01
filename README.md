@@ -87,8 +87,8 @@ Overall, 72% of shoppers who add something to their cart never buy it — and th
 
 ## Author & Contact
 
-**Simerpreet Kaur**
-Data Analyst
-📧 Email: ksimerpreet3@gmail.com
-🔗 [LinkedIn](https://www.linkedin.com/in/simer-preet-kaur/)
-🔗 [GitHub](https://github.com/Simer45)
+**Simerpreet Kaur**<br>
+Data Analyst<br>
+📧 Email: ksimerpreet3@gmail.com<br>
+🔗 LinkedIn: [linkedin.com/in/simer-preet-kaur](https://www.linkedin.com/in/simer-preet-kaur/)<br>
+🔗 GitHub: [github.com/Simer45](https://github.com/Simer45)
