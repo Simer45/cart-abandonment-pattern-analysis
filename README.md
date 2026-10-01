@@ -1,67 +1,92 @@
-# Cart Abandonment Pattern Analysis
+# 🛒 Cart Abandonment Pattern Analysis
 
-## Business Question
+**One-line summary:** A look at 38,865 online shoppers to find out exactly when during the day they abandon their carts the most — so a product team knows when to focus on fixing the checkout experience.
 
-Where, between adding an item to cart and completing checkout, are customers dropping off — and what should the product team fix first?
+## Overview
 
-Scope note: the dataset used (Retailrocket) has no session identifier, so abandonment here is measured at the **visitor level** across the full ~4.5-month window, not at the individual-session level. A visitor is counted as a cart-adder if they have at least one `addtocart` event; they are counted as "abandoned" if none of their events is a `transaction`.
+This project looks at real online shopping data to answer a simple question: when do people add something to their cart and then leave without buying it? Using Python, SQL (MySQL), and Power BI, the raw shopping data was cleaned, analyzed, and turned into an easy-to-read dashboard that shows exactly when cart abandonment happens the most.
+
+## Problem Statement
+
+**The question this project answers:** Between adding something to a cart and finishing checkout, when do customers drop off the most — and what should the product team fix first?
+
+A quick note on scope: this dataset doesn't track individual shopping "sessions" (a single visit to the site) — only each shopper's activity across the whole ~4.5-month period the data covers. So "abandoned" here means: this shopper added something to their cart at some point, but never completed a purchase at any point during that period.
+
+The original plan was also to look at which device people used (phone, laptop, etc.) and which product category they were shopping in, but neither piece of information was available in this dataset. So the analysis instead focuses on time of day — see the Limitations section below for more on this.
 
 ## Dataset
 
 | | |
 |---|---|
-| Source | [Retailrocket Recommender System Dataset](https://www.kaggle.com/datasets/retailrocket/ecommerce-dataset) (Kaggle) |
-| Raw size | 89.8 MB, 2,756,101 events |
-| Date range | ~4.5 months of anonymized e-commerce clickstream data |
-| Events used | `addtocart`, `transaction` (view events excluded — not relevant to the funnel) |
-| Fields used | `timestamp`, `visitorid`, `event`, `itemid`, `transactionid` |
+| Source | [Retailrocket dataset on Kaggle](https://www.kaggle.com/datasets/retailrocket/ecommerce-dataset) — a real, publicly available e-commerce dataset |
+| Size | 89.8 MB, about 2.76 million recorded shopping actions |
+| Time period | About 4.5 months of anonymized shopping activity |
+| What was used | Only two types of actions: adding an item to cart, and completing a purchase |
 
-**Note on dataset choice:** this project originally used the REES46 "eCommerce behavior data" dataset (8.38 GB, 67.5M rows). After cleaning and loading it into MySQL, the session-level funnel query repeatedly timed out on this machine even after query optimization (indexing, increased timeout, increased memory for temp tables). Rather than continue tuning for a dataset this hardware couldn't handle at scale, the project switched to Retailrocket — a smaller, real, properly-sourced dataset covering the same type of behavior. The trade-off is explicit: Retailrocket has no session ID, so this analysis reports visitor-level abandonment instead of session-level abandonment.
+## Tools & Technologies
 
-## Tools and Methodology
+- **Python** — cleaned and prepared the raw data
+- **MySQL** — organized the data and ran the calculations
+- **Power BI** — built the final dashboard
+- **Jupyter Notebook** — where the Python work was done
 
-1. **Python (pandas)** — loaded and profiled the raw CSV, removed duplicate events and rows with missing required fields, filtered down to `addtocart`/`transaction` events only, and converted the Unix millisecond timestamp to a readable datetime. Exported the cleaned data to `funnel_events_clean.csv`.
-2. **MySQL** — bulk-loaded the cleaned CSV into a `cart_abandonment_db` database (`funnel_events` table). Built a `visitor_summary` table (visitor-level flags: `has_cart`, `has_purchase`, `visitor_status`) and an hour-of-day breakdown query, both exported as CSVs for Power BI.
-3. **Power BI** — imported both exported tables, related them on `visitorid`, and built a dashboard with KPI cards, a visitor-outcome donut chart, and an hour-of-day clustered column chart.
+## Methods
 
-## Key Findings
+1. **Python:** Opened the raw data, removed duplicate entries and incomplete rows, kept only the "added to cart" and "purchased" actions, and converted the raw timestamps into readable dates and times.
+2. **MySQL:** Loaded the cleaned data into a database, then worked out — for every shopper — whether they added something to cart, whether they bought something, and what hour of the day their activity happened.
+3. **Power BI:** Brought all of that together into a dashboard with summary numbers, a chart showing what happened to each shopper, and a chart showing abandonment by hour of day.
+
+## Key Insights
 
 **Overall abandonment**
 
-- 37,722 visitors added at least one item to cart during the window.
-- Of those, 27,146 (**72.0%**) never completed a purchase — the headline cart abandonment rate.
-- 10,576 (28.0%) added to cart and went on to purchase.
-- A further 1,143 visitors purchased without any recorded add-to-cart event (likely a prior-session cart, or a direct buy-now path not captured by this event type). Including this group in the total visitor base (38,865) gives the outcome split shown in the dashboard's donut chart: 69.85% abandoned / 27.21% added-to-cart-and-purchased / 2.94% purchased-with-no-cart-event. The 72.0% figure is the more precise "cart abandonment rate" since it's scoped only to visitors who actually had a cart; the donut's 69.85% is a visitor-outcome mix across all visitors. Both are shown on the dashboard, with the KPI card carrying the headline number.
+- 37,722 shoppers added at least one item to their cart.
+- Of those, 27,146 (72%) never completed a purchase — this is the headline abandonment rate.
+- 10,576 (28%) added to cart and did go on to buy.
+- A separate group of 1,143 shoppers bought something without ever adding it to a cart first (likely a quick "buy now," or a cart added during an earlier visit this dataset didn't capture).
 
-**Abandonment by hour of day**
+**Abandonment by time of day**
 
-Abandoned-cart volume is not flat across the day — it follows a clear bimodal pattern:
+Cart abandonment isn't the same throughout the day — it changes a lot depending on the hour:
 
-- **Lowest activity:** 08:00–11:00, bottoming out at 10:00 (233 abandoned carts, the single lowest hour). This window also has the lowest conversion rate of the day (roughly 23–26%, versus ~40% during peak hours) — the few carts added here are also the least likely to convert.
-- **Elevated overnight:** 00:00–05:00 stays unexpectedly high (2,077–2,288 abandoned carts/hour) before dropping off sharply after 06:00.
-- **Afternoon/evening climb:** volume rises steadily from 14:00 onward.
-- **Peak abandonment:** 20:00 (8–9 PM), with 3,080 abandoned carts — the single highest hour in the dataset. 19:00, 21:00, and 22:00 are also high (2,698–2,823).
+- **Quietest hours:** 8 AM–11 AM, with the lowest point at 10 AM (only 233 abandoned carts). This is also when the fewest shoppers who do add to cart actually go on to buy (about 23–26%, compared to about 40% during busy hours).
+- **Surprisingly busy overnight:** midnight–5 AM sees high abandonment too (2,000+ carts an hour), before dropping off sharply after 6 AM.
+- **A steady climb through the afternoon and evening.**
+- **Busiest hour:** 8–9 PM, with 3,080 abandoned carts — the single highest hour recorded. The hours around it (7 PM, 9 PM, 10 PM) are also very busy.
 
-**Recommendation for the product team:** prioritize checkout-flow fixes for the 18:00–23:00 window first — it carries both the highest raw volume of abandoned carts and sustained high traffic across six consecutive hours, so a fix here affects the most customers. The 08:00–11:00 trough is lower priority by volume, but its unusually low conversion rate is worth a separate look, since it suggests something beyond simple traffic volume is discouraging purchases in that window.
+A quick note on this finding: the dataset doesn't say what time zone these hours are recorded in. So while the pattern above is real in the data, it isn't fully certain it lines up with each shopper's actual local time of day — especially if shoppers are spread across different countries or regions.
 
-*Caveat: the dataset does not document which timezone its timestamps are in. The pattern above is real within the data as recorded, but "hour of day" may not map directly to each visitor's local time if traffic is drawn from multiple regions — treat the peak/trough windows as relative patterns in the data rather than confirmed local-time behavior.*
+## Dashboard
+
+The Power BI dashboard includes:
+
+- Four summary cards: total shoppers who added to cart, total who abandoned, total who converted (bought), and the overall abandonment rate
+- A donut chart showing what happened to each shopper (bought, abandoned, or bought without a cart)
+- A bar chart showing abandoned vs. completed carts for every hour of the day
+
+## How to Run This Project
+
+1. Download the dataset (`events.csv`) from the [Kaggle page](https://www.kaggle.com/datasets/retailrocket/ecommerce-dataset) and place it in a `Data` folder.
+2. Open `Cart_Abandonment_Retailrocket.ipynb` in Jupyter Notebook and run it from top to bottom. This cleans the data and saves it into the `Exports` folder.
+3. Create a MySQL database and run the queries in `Cart_Abandonment_Analysis.sql` to build the summary tables.
+4. Open `Cart_Abandonment_Dashboard.pbix` in Power BI Desktop to see the finished dashboard.
+
+## Results & Conclusion
+
+Overall, 72% of shoppers who add something to their cart never buy it — and this isn't spread evenly through the day. The busiest window, 6 PM to 11 PM, should be the first place a product team looks: it has the most abandoned carts and stays busy for six hours straight, so fixing problems here would help the largest number of shoppers. The quiet morning window (8–11 AM) has fewer abandoned carts overall, but it's worth a second look too, since shoppers there are also less likely to buy — something other than traffic volume may be going on during those hours.
 
 ## Limitations
 
-- **No session ID:** abandonment is measured per visitor across the entire ~4.5-month window, not per shopping session. A visitor who abandoned a cart in month 1 and purchased something unrelated in month 3 would be counted as "converted," not "abandoned." This is a real difference from a session-scoped funnel analysis.
-- **No device-type data:** the dataset does not record device (desktop/mobile/tablet), so this dimension — originally part of the planned analysis — could not be included.
-- **No product-category data:** category information exists only in a separate large property file not joined into this analysis; it was explicitly dropped to keep the project scoped and performant. Abandonment by category is not covered here.
-- **Timezone of timestamps is undocumented** (see caveat above).
-- **"ROI" was not computed:** this dataset has no campaign cost or marketing-response data, so no return-on-investment figure is included. The analysis instead quantifies abandonment volume and timing, which is what the data can actually support.
+- **No "session" tracking:** this dataset tracks each shopper over the whole 4.5-month period, not per individual visit. So someone who abandoned a cart in month one and bought something unrelated in month three still counts as "converted," not "abandoned."
+- **No device information:** there's no way to tell if someone was shopping on a phone, laptop, or tablet.
+- **No product category information:** that data exists in a separate file that wasn't included, to keep this project manageable.
+- **Time zone is unknown** for the hour-of-day data (see note above).
+- **No return-on-investment (ROI) numbers:** this dataset doesn't include marketing costs or campaign data, so this project focuses on where and when abandonment happens, not on dollar-for-dollar campaign returns.
 
-## Files in This Project
+## Author & Contact
 
-| File | Purpose |
-|---|---|
-| `Data/events.csv` | Raw Retailrocket dataset |
-| `Cart_Abandonment_Retailrocket.ipynb` | Python cleaning notebook |
-| `Exports/funnel_events_clean.csv` | Cleaned event-level data (output of notebook, loaded into MySQL) |
-| `Exports/visitor_summary.csv` | Visitor-level summary table (output of MySQL, loaded into Power BI) |
-| `Cart_Abandonment_Analysis.sql` | SQL queries used for the funnel and hour-of-day analysis |
-| `Cart_Abandonment_Dashboard.pbix` | Final Power BI dashboard |
-| `README.md` | This file |
+**Simerpreet Kaur**
+Data Analyst
+📧 Email: ksimerpreet3@gmail.com
+🔗 [LinkedIn](https://www.linkedin.com/in/simer-preet-kaur/)
+🔗 [GitHub](https://github.com/Simer45)
