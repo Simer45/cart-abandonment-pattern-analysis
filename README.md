@@ -58,6 +58,8 @@ A quick note on this finding: the dataset doesn't say what time zone these hours
 
 ## Dashboard
 
+![Cart Abandonment Dashboard](images/dashboard.png)
+
 The Power BI dashboard includes:
 
 - Four summary cards: total shoppers who added to cart, total who abandoned, total who converted (bought), and the overall abandonment rate
